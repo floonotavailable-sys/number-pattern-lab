@@ -1,0 +1,10 @@
+{
+  "name": "Number Pattern Lab",
+  "short_name": "Pattern Lab",
+  "description": "Offline number pattern analyzer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": []
+}

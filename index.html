@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="Offline number pattern analyzer">
+<link rel="manifest" href="manifest.json">
+<title>Number Pattern Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#141f32;--panel2:#1b2940;--text:#f1f5f9;--muted:#9aaac0;--accent:#a5b4fc;--line:#2c3b52;--green:#86efac;--danger:#fda4af}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#17233a 0%,var(--bg) 48%);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);min-height:100vh}
+main{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(30px + env(safe-area-inset-bottom))}
+.kicker{color:var(--accent);font-size:.76rem;font-weight:800;letter-spacing:.16em}
+h1{font-size:clamp(1.65rem,6vw,2.3rem);line-height:1.12;margin:.45rem 0}.sub{color:var(--muted);margin:0 0 22px;font-size:.95rem}
+.card{background:rgba(20,31,50,.94);border:1px solid var(--line);border-radius:18px;padding:16px;margin:13px 0;box-shadow:0 12px 30px #0002}
+h2{font-size:1.03rem;margin:0 0 12px}label{display:block;font-size:.87rem;color:#dbe4f0;margin:0 0 7px}
+.row{display:flex;gap:9px;align-items:center}.row>*{min-width:0}.grow{flex:1}
+input,select,button,textarea{font:inherit;border-radius:12px;border:1px solid var(--line);padding:12px;background:#0e1829;color:var(--text);min-height:46px}
+input,select{width:100%}button{font-weight:700;cursor:pointer;touch-action:manipulation}
+button.primary{background:var(--accent);border-color:var(--accent);color:#111827}button.secondary{background:#26364f}button.green{background:#bbf7d0;color:#052e16;border-color:#bbf7d0}button.danger{color:var(--danger);background:transparent}
+.small{font-size:.83rem;color:var(--muted);line-height:1.5}.pill{display:inline-block;border:1px solid var(--line);background:#0e1829;padding:5px 9px;border-radius:999px;font-size:.75rem;color:var(--muted)}
+.history{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.num-chip{background:#26364f;border:1px solid #394b67;padding:7px 10px;border-radius:10px;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.06em}
+.result{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line)}.result:last-child{border-bottom:0}.candidate{font-size:1.5rem;letter-spacing:.1em;font-weight:800;font-variant-numeric:tabular-nums}.score{font-size:.78rem;color:var(--accent);text-align:right}.method{font-size:.77rem;color:var(--muted);margin-top:3px}
+.statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.stat{background:#0e1829;border:1px solid var(--line);padding:10px;border-radius:12px}.stat strong{display:block;font-size:1.15rem}.stat span{font-size:.73rem;color:var(--muted)}
+.notice{border-left:3px solid #818cf8;padding:9px 11px;background:#101b2e;border-radius:8px;color:#cbd5e1;font-size:.82rem;line-height:1.5}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}
+footer{text-align:center;color:var(--muted);font-size:.75rem;padding:15px 4px}
+@media(min-width:560px){.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.two .card{margin:0}}
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">OFFLINE NUMBER TOOL</div>
+  <h1>Number Pattern Lab</h1>
+  <p class="sub">Explore mathematical patterns in previous results.</p>
+
+  <section class="card">
+    <h2>1 · Draw format</h2>
+    <div class="row">
+      <div class="grow"><label for="digits">Number of digits</label>
+        <select id="digits"><option value="2">2 digits</option><option value="3">3 digits</option><option value="4" selected>4 digits</option><option value="5">5 digits</option><option value="6">6 digits</option></select>
+      </div>
+      <div class="grow"><label for="count">Candidates to show</label>
+        <select id="count"><option>5</option><option selected>10</option><option>15</option></select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2 · Add previous results</h2>
+    <label for="number">One result at a time</label>
+    <div class="row">
+      <input class="grow" id="number" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="e.g. 0341">
+      <button id="add" class="primary">Add</button>
+    </div>
+    <p class="small">Leading zeros are preserved. Your history is saved on this device only.</p>
+    <div class="statgrid">
+      <div class="stat"><strong id="total">0</strong><span>Saved results</span></div>
+      <div class="stat"><strong id="unique">0</strong><span>Unique values</span></div>
+      <div class="stat"><strong id="latest">—</strong><span>Latest result</span></div>
+    </div>
+    <div id="history" class="history"></div>
+    <div class="actions" style="margin-top:12px">
+      <button id="undo" class="secondary">Undo last</button>
+      <button id="clear" class="danger">Clear history</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3 · Generate candidates</h2>
+    <p class="small">Tests digit-wise changes, recent differences, common digits, reversals, and simple arithmetic transforms.</p>
+    <button id="analyze" class="primary" style="width:100%">Analyze & generate</button>
+    <div id="stats" style="margin-top:14px"></div>
+    <div id="results" style="margin-top:8px"><p class="small">Add at least two results, then tap Analyze.</p></div>
+  </section>
+
+  <section class="card">
+    <h2>Pattern notes</h2>
+    <div id="patterns" class="small">Pattern notes will appear after analysis.</div>
+  </section>
+
+  <div class="notice"><strong>Important:</strong> scores are heuristic pattern-fit scores, not probabilities. If the draw is random, past results cannot reliably predict the next result. This tool explores possibilities; it cannot guarantee a hit.</div>
+  <footer>Number Pattern Lab · Runs offline after the files are saved on your device</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const STORE='number-pattern-lab-v1';
+let history=[];
+try{history=JSON.parse(localStorage.getItem(STORE)||'[]')}catch(e){history=[]}
+const digits=()=>Number($('digits').value);
+const save=()=>{try{localStorage.setItem(STORE,JSON.stringify(history))}catch(e){};renderHistory()};
+function renderHistory(){
+  $('total').textContent=history.length;
+  $('unique').textContent=new Set(history).size;
+  $('latest').textContent=history.length?history[history.length-1]:'—';
+  $('history').innerHTML='';
+  history.slice(-35).reverse().forEach((v,i)=>{
+    const el=document.createElement('span');el.className='num-chip';el.textContent=v;$('history').appendChild(el);
+  });
+  if(!history.length){const p=document.createElement('p');p.className='small';p.textContent='No saved results yet.';$('history').appendChild(p)}
+}
+function add(){
+  const n=digits(),v=$('number').value.trim();
+  if(!new RegExp('^\\\\d{'+n+'}$').test(v)){alert('Enter exactly '+n+' digits. Leading zeros are allowed.');return}
+  history.push(v);if(history.length>500)history=history.slice(-500);
+  $('number').value='';save();$('number').focus();
+}
+$('add').addEventListener('click',add);
+$('number').addEventListener('keydown',e=>{if(e.key==='Enter')add()});
+$('undo').addEventListener('click',()=>{history.pop();save()});
+$('clear').addEventListener('click',()=>{if(confirm('Delete all saved results on this device?')){history=[];save();$('results').innerHTML='<p class="small">History cleared.</p>';$('stats').innerHTML='';$('patterns').textContent='Pattern notes will appear after analysis.'}});
+$('digits').addEventListener('change',()=>{ $('number').maxLength=digits();$('number').placeholder='Enter '+digits()+' digits';renderHistory()});
+function analyze(){
+  const n=digits(),nums=history.filter(v=>v.length===n);
+  if(nums.length<2){alert('Add at least two results of the selected digit length.');return}
+  const latest=nums[nums.length-1],ld=[...latest].map(Number),pool=new Map();
+  function put(ds,method){const s=ds.map(x=>(x%10+10)%10).join('');if(s.length===n){if(!pool.has(s))pool.set(s,[]);pool.get(s).push(method)}}
+  put(ld.map(x=>x+1),'Each digit +1');
+  put(ld.map(x=>x-1),'Each digit −1');
+  put([...ld].reverse(),'Reverse digits');
+  put(ld.map(x=>x*2),'Each digit ×2 (mod 10)');
+  put(ld.map(x=>x+ld.reduce((a,b)=>a+b,0)),'Add digit sum');
+  const prev=[...nums[nums.length-2]].map(Number);
+  put(ld.map((x,i)=>x+(x-prev[i])),'Repeat latest digit change');
+  put(ld.map((x,i)=>x+prev[i]),'Add corresponding digits');
+  put(ld.map((x,i)=>x-prev[i]),'Subtract corresponding digits');
+  if(nums.length>=3){
+    const p2=[...nums[nums.length-3]].map(Number);
+    put(ld.map((x,i)=>x+(x-prev[i])+(prev[i]-p2[i])),'Continue digit-change trend');
+  }
+  const window=nums.slice(-50);
+  const modes=Array.from({length:n},(_,i)=>{
+    const counts=Array(10).fill(0);window.forEach(v=>counts[Number(v[i])]++);
+    return counts.indexOf(Math.max(...counts));
+  });
+  put(modes,'Most common digit by position');
+  for(let i=0;i<n;i++){const mix=[...ld];mix[i]=modes[i];put(mix,'Replace position '+(i+1)+' with frequent digit')}
+  const mod=10**n,a=Number(latest),b=Number(nums[nums.length-2]);
+  [[a+b,'Add full numbers'],[Math.abs(a-b),'Absolute difference'],[a*2,'Double latest'],[Math.floor(a/2),'Half latest']].forEach(([x,m])=>{const s=String(x%mod).padStart(n,'0');if(!pool.has(s))pool.set(s,[]);pool.get(s).push(m)});
+  const counts=Array.from({length:n},(_,i)=>{const c=Array(10).fill(0);window.forEach(v=>c[Number(v[i])]++);return c});
+  const scored=[...pool.entries()].map(([v,methods])=>{
+    let score=35;[...v].forEach((ch,i)=>{score+=18*counts[i][Number(ch)]/window.length;if(Number(ch)===modes[i])score+=5;if(Number(ch)===(ld[i]+((ld[i]-prev[i]+10)%10))%10)score+=3});
+    return {v,score:Math.max(1,Math.min(99,Math.round(score))),methods:[...new Set(methods)]};
+  }).sort((x,y)=>y.score-x.score).slice(0,Number($('count').value));
+  $('results').innerHTML='';
+  scored.forEach((item,i)=>{
+    const row=document.createElement('div');row.className='result';
+    const left=document.createElement('div');
+    const num=document.createElement('div');num.className='candidate';num.textContent=(i+1)+'. '+item.v;
+    const method=document.createElement('div');method.className='method';method.textContent=item.methods.slice(0,2).join(' · ');
+    left.append(num,method);
+    const right=document.createElement('div');right.className='score';right.textContent=item.score+'%';right.append(document.createElement('br'));right.append(document.createTextNode('fit score'));
+    row.append(left,right);$('results').appendChild(row);
+  });
+  const total=nums.length;
+  $('stats').innerHTML='<div class="statgrid"><div class="stat"><strong>'+total+'</strong><span>Results analyzed</span></div><div class="stat"><strong>'+new Set(nums).size+'</strong><span>Unique results</span></div><div class="stat"><strong>'+scored.length+'</strong><span>Candidates shown</span></div></div>';
+  const freq=Array.from({length:n},(_,i)=>{const c=Array(10).fill(0);nums.forEach(v=>c[Number(v[i])]++);const max=Math.max(...c);return 'Position '+(i+1)+': most common digit(s) '+c.map((x,d)=>x===max?d:null).filter(x=>x!==null).join(', ')+' ('+max+' of '+total+')'}).join('<br>');
+  $('patterns').innerHTML='<b>Digit frequency by position</b><br>'+freq+'<br><br><b>Latest result:</b> '+latest+'<br><b>Previous result:</b> '+nums[nums.length-2]+'<br><b>Latest numerical difference:</b> '+(Number(latest)-Number(nums[nums.length-2]));
+}
+$('analyze').addEventListener('click',analyze);
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+renderHistory();
+</script>
+</body>
+</html>
